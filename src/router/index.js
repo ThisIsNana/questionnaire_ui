@@ -7,7 +7,8 @@ const router = createRouter({
       path: "/",
       name: "home_join",
       component: () => import("../views/Join.vue")
-    }, {
+    },
+    {
       path: "/create",
       name: "create",
       component: () => import("../views/Create.vue"),
@@ -34,10 +35,33 @@ const router = createRouter({
           path: 'check',
           name: 'check',
           component: () => import("../components/CCheck.vue")
-        }, {
-          path: 'finished',
-          name: 'finished',
-          component: () => import("../components/CFinished.vue")
+        },
+      ]
+    },
+    {
+      path: "/join",
+      name: "join",
+      component: () => import("../views/Join.vue"),
+      children: [
+        {
+          path: "participant", // 空路徑，對應/join
+          name: "participant",
+          component: () => import("../components/JParticipant.vue")
+        },
+        {
+          path: "surveylist",
+          name: "surveylist",
+          component: () => import("../components/JSurveyList.vue")
+        },
+        {
+          path: "questions",
+          name: "questions",
+          component: () => import("../components/JQuestions.vue")
+        },
+        {
+          path: "result",
+          name: "result",
+          component: () => import("../components/JResult.vue")
         },
       ]
     },

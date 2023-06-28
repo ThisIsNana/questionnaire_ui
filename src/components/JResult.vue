@@ -3,9 +3,9 @@ export default {
 
 }
 </script>
-<template>
+<template lang="">
     <div>
-        <h2>參加者資料</h2>
+        <h2>投票結果</h2>
     </div>
 </template>
 <style lang="">
