@@ -7,7 +7,6 @@ import CCreator from "../components/CCreator.vue";
 import CSurvey from "../components/CSurvey.vue";
 import CQuestions from "../components/CQuestions.vue";
 import CCheck from "../components/CCheck.vue";
-import CFinished from "../components/CFinished.vue";
 
 export default {
     components: {
@@ -15,7 +14,6 @@ export default {
         CSurvey,
         CQuestions,
         CCheck,
-        CFinished,
     },
     data() {
         return {
@@ -44,7 +42,7 @@ export default {
             this.end_time = saveSurveyData.end_time;
         },
         getQuestionsData(saveQuestionData) {
-            this.ques_opt = saveQuestionData.ques_opt;
+            this.ques_opt = saveQuestionData;
         },
         consoleAll() {
             console.log("第一頁");
@@ -61,6 +59,9 @@ export default {
             console.log(this.ques_opt);
         }
     },
+    created() {
+        this.$router.push('/create/creator');
+    }
 };
 </script>
 <template>
@@ -100,20 +101,12 @@ export default {
             <RouterLink to="/create/check" class="link" v-else>
                 <i class="fa-regular fa-square-check fa-lg"></i>確認畫面
             </RouterLink>
-
-            <RouterLink to="/create/finished" class="link" v-if="$route.path === '/create/finished'">
-                <i class="fa-solid fa-square-check fa-xl"></i>完成
-            </RouterLink>
-            <RouterLink to="/create/finished" class="link" v-else>
-                <i class="fa-solid fa-square-check fa-lg"></i>完成
-            </RouterLink>
         </div>
         <div class="show_step">
             <CCreator v-if="$route.path === '/create/creator'" @saveCreator="getCreatorData" />
             <CSurvey v-else-if="$route.path === '/create/survey_info'" @saveSurvey="getSurveyData" />
             <CQuestions v-else-if="$route.path === '/create/questions'" @saveQuestions="getQuestionsData" />
             <CCheck v-else-if="$route.path === '/create/check'" />
-            <CFinished v-else-if="$route.path === '/create/finished'" />
         </div>
     </div>
 </template>

@@ -11,12 +11,31 @@ export default {
     methods: {
         //按下儲存
         saveCreator() {
+            //防呆-空白
+            if (this.creator_name === "" || this.creator_email === "" || this.creator_phone === "" || this.creator_age < 0) {
+                this.$swal({
+                    icon: 'error',
+                    title: '錯誤',
+                    text: '格子不可為空!',
+                    footer: '每個格子皆為必填'
+                });
+                return;
+            }
+
+            //無空白就存進session
             const creatorData = {
                 creator_name: this.creator_name,
                 creator_phone: this.creator_phone,
                 creator_email: this.creator_email,
                 creator_age: this.creator_age,
             }
+
+            this.$swal({
+                icon: 'success',
+                title: '成功暫存',
+                text: '現在可以切換其它頁面了',
+                footer: '暫存狀態下，問卷還不算完成唷!'
+            });
 
             //把資料傳回父層
             this.$emit('saveCreator', creatorData)
@@ -41,7 +60,7 @@ export default {
 </script>
 <template>
     <div class="main">
-        <h1>創建者資訊</h1>
+        <!-- <h1>創建者資訊</h1> -->
         <div class="box">
             <h2>姓名</h2>
             <input type="text" name="creator_name" id="creator_name" placeholder="王小明" v-model="creator_name">
@@ -60,7 +79,8 @@ export default {
             <input type="number" name="creator_age" id="creator_age" placeholder="25" v-model="creator_age">
         </div>
         <hr>
-        <p class="des_save">※注意：記得按下暫存，否則資料將會遺失。暫存下來後尚未送出都不算建立完成唷!</p>
+        <p class="des_save">※注意：記得按下暫存，否則資料將會遺失。</p>
+        <p class="des_save">※暫存下來後尚未送出都不算建立完成唷!</p>
         <button type="button" class="save_btn" @click="saveCreator">
             <i class="fa-solid fa-floppy-disk fa-lg"></i>暫存
         </button>
@@ -123,7 +143,7 @@ export default {
 
     .des_save {
         font-size: 16px;
-        color: #319a00;
+        color: #b80000;
         font-weight: bolder;
         line-height: 30px;
     }

@@ -12,21 +12,36 @@ export default {
     methods: {
         //將資料傳出去
         saveSurvey() {
+            if (this.title.trim() === "" || this.description.trim() === "" || this.start_time.trim() === "" || this.end_time.trim() === "") {
+                this.$swal({
+                    icon: 'error',
+                    title: '錯誤',
+                    text: '格子不可為空!',
+                    footer: '每個格子皆為必填'
+                });
+                return;
+            }
+
+            //存進session
             const surveyData = {
                 title: this.title,
                 description: this.description,
                 start_time: this.start_time,
                 end_time: this.end_time,
             }
+
+            this.$swal({
+                icon: 'success',
+                title: '成功暫存',
+                text: '現在可以切換其它頁面了',
+                footer: '暫存狀態下，問卷還不算完成唷!'
+            });
+
             //把資料傳回父層
             this.$emit('saveSurvey', surveyData)
 
             //存進session裡:)
             localStorage.setItem('surveyData', JSON.stringify(surveyData))
-
-            // 移除session
-            // localStorage.removeItem('surveyData');
-
         },
     },
     created() {
@@ -46,16 +61,16 @@ export default {
         const timezoneOffset = now.getTimezoneOffset() * 60000;
 
         //設定預設開始/結束時間
-        this.start_time = new Date(now.getTime() - timezoneOffset).toISOString().slice(0, 16);
-        this.end_time = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000 - timezoneOffset).toISOString().slice(0, 16);
+        this.start_time = new Date(now.getTime() - timezoneOffset).toISOString().slice(0, 16).replace('T', ' ');
+        this.end_time = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000 - timezoneOffset).toISOString().slice(0, 16).replace('T', ' ');
     }
 
 }
 </script>
 <template>
     <div class="main">
-        <h1>問卷資訊</h1>
-        <hr>
+        <!-- <h1>問卷資訊</h1>
+        <hr> -->
         <div class="box">
             <h2>問卷標題</h2>
             <input type="text" name="title" id="title" placeholder="早餐吃什麼？" v-model="title">
@@ -77,9 +92,10 @@ export default {
 
         <p class="des">※注意：問卷送出後，開始前都可編輯，開始後便不可編輯，但可檢視投票統計。</p>
         <hr>
-        <p class="des_save">※注意：記得按下暫存，否則資料將會遺失。暫存下來後尚未送出都不算建立完成唷!</p>
-        <button type="button" class="save_btn" @click="saveCreator">
-            <i class="fa-solid fa-floppy-disk fa-lg"></i>儲存
+        <p class="des_save">※注意：記得按下暫存，否則資料將會遺失。</p>
+        <p class="des_save">※暫存下來後尚未送出都不算建立完成唷!</p>
+        <button type="button" class="save_btn" @click="saveSurvey">
+            <i class="fa-solid fa-floppy-disk fa-lg"></i>暫存
         </button>
     </div>
 </template>
@@ -155,7 +171,7 @@ export default {
 
     .des_save {
         font-size: 16px;
-        color: #319a00;
+        color: #b80000;
         font-weight: bolder;
         line-height: 30px;
     }

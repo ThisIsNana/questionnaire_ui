@@ -1,6 +1,4 @@
 <script>
-import { NavigationFailureType } from 'vue-router'
-
 export default {
     data() {
         return {
@@ -9,60 +7,106 @@ export default {
             add_options: "",
             ques_opt: [],
             is_edit: false,
+            editIndex: -1,
         }
     },
     methods: {
-        //將資料傳出去
-        saveQuestion() {
-            console.log("點擊了儲存按鈕，把資料傳回父層")
-
-            //把資料傳回父層
-            this.$emit('questionData', this.ques_opt)
-
-            //存進session裡:)
-            localStorage.setItem('questionData', JSON.stringify(this.ques_opt))
-
-            // 移除session
-            // localStorage.removeItem('questionData');
-
-        },
-        addQuestionAndEdit(questionIndex) {
+        addQuestionAndEdit() {
             // 新增模式
             if (this.is_edit === false) {
                 console.log("點下確認新增的按鈕")
-                const question = this.add_question;
-                const options = this.add_options;
+                const question = this.add_question.trim();
+                const options = this.add_options.trim();
 
+                if (question === "" || options === "") {
+                    this.$swal({
+                        icon: 'error',
+                        title: '錯誤',
+                        text: '格子不可為空!',
+                        footer: '每個格子皆為必填'
+                    });
+                    return;
+                }
+                if (options.startsWith(',') || options.endsWith(',')) {
+                    this.$swal({
+                        icon: 'error',
+                        title: '錯誤',
+                        text: '選項開頭或結尾不能為半形逗號',
+                        footer: '可能有東西遺漏了!'
+                    });
+                    return;
+                }
                 //加入陣列
                 this.ques_opt.push({ question, options });
+
+                this.$swal({
+                    icon: 'success',
+                    title: '新增成功',
+                    text: '清單請往下滑',
+                });
 
                 //確認新增後就清空輸入框
                 this.add_question = "";
                 this.add_options = "";
-
                 console.log(this.ques_opt)
             }
             // 編輯模式
             else {
-                console.log("點下編輯的按鈕")
-                const editData = this.ques_opt[questionIndex];
-                editData.question = this.add_question;
-                editData.options = this.add_options;
+                console.log("點下確認編輯的按鈕")
 
-                //更改"確認修改"
-                const addBtnDOM = document.querySelector('#add_btn');
-                addBtnDOM.innerText = "確認新增"
+                if (this.add_question.trim() === "" || this.add_options.trim() === "") {
 
-                //更改"編輯按鈕"
-                const editBtnDOM = document.querySelector('#edit_btn')
-                editBtnDOM.innerText = "修改";
+                    this.$swal({
+                        icon: 'error',
+                        title: '錯誤',
+                        text: '請勿空白',
+                        footer: '每個格子皆為必填!'
+                    });
+                    return;
+                }
 
-                //關閉編輯模式
-                this.is_edit = false;
+                if (this.add_options.startsWith(',') || this.add_options.endsWith(',')) {
+                    this.$swal({
+                        icon: 'error',
+                        title: '錯誤',
+                        text: '選項開頭或結尾不能為半形逗號',
+                        footer: '可能有東西遺漏了!'
+                    });
+                    return;
+                }
 
-                //確認新增後就~清空輸入框
-                this.add_question = "";
-                this.add_options = "";
+                //確認這個index的項目存在
+                if (this.editIndex >= 0 && this.editIndex < this.ques_opt.length) {
+
+                    const editData = this.ques_opt[this.editIndex];
+                    editData.question = this.add_question;
+                    editData.options = this.add_options;
+
+                    this.$swal({
+                        icon: 'success',
+                        title: '編輯成功',
+                        text: '記得按下暫存資料才會記錄下來喔!',
+                    });
+
+                    //更改"確認修改"
+                    const addBtnDOM = document.querySelector('#add_btn');
+                    addBtnDOM.innerText = "確認新增"
+
+                    //關閉編輯模式
+                    this.is_edit = false;
+
+                    //確認新增後就~清空輸入框
+                    this.add_question = "";
+                    this.add_options = "";
+                } else {
+                    console.log("錯誤! ");
+                    this.$swal({
+                        icon: 'error',
+                        title: '錯誤',
+                        text: '找不到這個項目',
+                    });
+                    return;
+                }
             }
         },
         // 編輯按鈕按下去
@@ -71,10 +115,6 @@ export default {
             const addBtnDOM = document.querySelector('#add_btn');
             addBtnDOM.innerText = "確認修改"
 
-            //更改"編輯按鈕"
-            const editBtnDOM = document.querySelector('#edit_btn')
-            editBtnDOM.innerText = "修改中";
-
             //把資料放回上面的輸入欄
             const editQuestion = this.ques_opt[questionIndex];
             this.add_question = editQuestion.question;
@@ -82,24 +122,83 @@ export default {
 
             //更改is_edit為true進入編輯模式
             this.is_edit = true;
-        }
+            this.editIndex = questionIndex;
+        },
+        //將資料傳出去
+        saveQuestions() {
+            console.log("點擊了儲存按鈕，把資料傳回父層")
+
+            this.$swal({
+                icon: 'success',
+                title: '成功暫存',
+                text: '現在可以切換其它頁面了',
+                footer: '暫存狀態下，問卷還不算完成唷!'
+            });
+
+            //把資料傳回父層
+            this.$emit('saveQuestions', this.ques_opt)
+
+            //存進session裡:)
+            localStorage.setItem('questionData', JSON.stringify(this.ques_opt))
+        },
+        //刪除選項
+        deleteQuestion(questionIndex) {
+            console.log("點下刪除按鈕");
+            this.$swal({
+                icon: 'question',
+                title: '確認要刪除嗎？',
+                text: '記得按下暫存資料才會記錄下來喔!',
+                showCloseButton: true,
+                showCancelButton: true,
+                confirmButtonText: '確定刪除',
+                cancelButtonText: '我再想想',
+                reverseButtons: true,
+                confirmButtonColor: '#39b500',
+                cancelButtonColor: '#b80000',
+                iconColor: '#1B5400',
+            }).then((result) => {
+                if (result.isConfirmed === true) {
+                    if (questionIndex >= 0 && questionIndex < this.ques_opt.length) {
+                        this.ques_opt.splice(questionIndex, 1);
+                        this.$swal({
+                            icon: 'success',
+                            title: '成功刪除選項',
+                            text: '記得按下暫存資料才會記錄下來喔!',
+                        })
+                        // 創建一個新的陣列並觸發視圖重新渲染
+                        this.ques_opt = [...this.ques_opt];
+                    } else {
+                        console.log("錯誤! ");
+                        this.$swal({
+                            icon: 'error',
+                            title: '錯誤',
+                            text: '找不到這個項目',
+                        });
+                        return;
+                    }
+                }
+            }).catch((err) => {
+                console.log(err)
+            });
+
+
+        },
     },
     created() {
-        //頁面一開始就從session抓出來:)
-        // const savedQuestionData = localStorage.getItem('questionData');
-        // if (savedQuestionData) {
-        //     const questionData = JSON.parse(savedQuestionData);
-        //     // this.end_time = questionData.end_time;
-        // }
-
+        // 頁面一開始就從session抓出來:)
+        const savedQuestionData = localStorage.getItem('questionData');
+        if (savedQuestionData) {
+            const questionData = JSON.parse(savedQuestionData);
+            // console.log(questionData)
+            this.ques_opt = questionData;
+        }
     },
 
 }
 </script>
 <template>
     <div class="main">
-        <h1>新增題目及選項!</h1>
-        <hr>
+        <!-- <h1>新增題目及選項!</h1> -->
         <!-- 新增區域 -->
         <div class="add_area">
             <div class="box">
@@ -108,7 +207,8 @@ export default {
             </div>
             <div class="box">
                 <h2>新增選項</h2>
-                <textarea name="add_options" id="add_options" placeholder="多個答案以半型逗號「,」分隔" v-model="add_options"></textarea>
+                <textarea name="add_options" id="add_options" placeholder="多個答案以半型逗號「,」分隔，不需添加ABCD或1234"
+                    v-model="add_options"></textarea>
                 <!-- 取值時使用textarea.textContent來忽略換行及tab等格式 -->
             </div>
             <button type="button" @click="addQuestionAndEdit" id="add_btn">確認新增!</button>
@@ -136,6 +236,7 @@ export default {
                         <td class="opt">{{ item.options }}</td>
                         <td class="do">
                             <button type="button" @click="edit(index)" id="edit_btn">編輯</button>
+                            <button type="button" @click="deleteQuestion(index)" id="delete_btn">刪除</button>
                         </td>
                     </tr>
                 </tbody>
@@ -144,9 +245,10 @@ export default {
 
         <hr>
 
-        <p class="des_save">※注意：記得按下暫存，否則資料將會遺失。暫存下來後尚未送出都不算建立完成唷!</p>
-        <button type="button" class="save_btn" @click="saveQuestion">
-            <i class="fa-solid fa-floppy-disk fa-lg"></i>儲存
+        <p class="des_save">※注意：記得按下暫存，否則表格資料及所有修改將會遺失。</p>
+        <p class="des_save">※暫存下來後尚未送出都不算建立完成唷!</p>
+        <button type="button" class="save_btn" @click="saveQuestions">
+            <i class="fa-solid fa-floppy-disk fa-lg"></i>暫存
         </button>
     </div>
 </template>
@@ -249,36 +351,53 @@ export default {
 
                 th {
                     padding: 5px 10px;
+                    white-space: pre-wrap;
+                    word-break: break-all;
                 }
 
                 tr {
                     border: 1px solid #1B5400;
+                    white-space: pre-wrap;
+                    word-break: break-all;
 
-                    .num,
-                    .ques {
-                        width: 10%;
+                    .num {
+                        width: 5%;
                         border: 1px solid #1B5400;
                         padding: 5px 10px;
                         text-align: center;
+                        white-space: pre-wrap;
+                        word-break: break-all;
                     }
 
-                    .opt {
-                        width: 71%;
+                    .opt,
+                    .ques {
+                        width: 30%;
                         border: 1px solid #1B5400;
                         padding: 5px 10px;
+                        white-space: pre-wrap;
+                        word-break: break-all;
                     }
 
                     .do {
-                        width: 10%;
+                        width: 20%;
                         border: 1px solid #1B5400;
                         padding: 10px 10px;
                         text-align: center;
 
-                        button {
+                        #edit_btn {
                             border-radius: 5px;
                             border-color: #1B5400;
                             background-color: #1B5400;
                             color: white;
+                            margin: 0 5px;
+                        }
+
+                        #delete_btn {
+                            border-radius: 5px;
+                            border-color: #9b0000;
+                            background-color: #b80000;
+                            color: white;
+                            margin: 0 5px;
                         }
                     }
 
@@ -290,7 +409,7 @@ export default {
 
     .des_save {
         font-size: 16px;
-        color: #319a00;
+        color: #b80000;
         font-weight: bolder;
         line-height: 30px;
     }

@@ -3,9 +3,9 @@ export default {
 
 }
 </script>
-<template >
+<template lang="">
     <div>
-        完成畫面
+        
     </div>
 </template>
 <style lang="">
