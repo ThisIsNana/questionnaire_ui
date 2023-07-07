@@ -16,7 +16,7 @@ library.add(fas);
 
 import App from './App.vue'
 import router from './router'
-
+import moment from 'moment'
 
 import VueSweetalert2 from 'vue-sweetalert2';
 import 'sweetalert2/dist/sweetalert2.min.css';
@@ -34,6 +34,7 @@ app.component('font-awesome-icon', FontAwesomeIcon);
 const pinia = createPinia()
 app.use(createPinia())
 app.use(pinia)
+app.use(moment)
 
 app.use(router)
 app.use(VueSweetalert2);

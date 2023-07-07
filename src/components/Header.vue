@@ -30,13 +30,13 @@ export default {
         </div>
         <ul class="nav">
           <li class="">
-            <RouterLink to="/" class="to_answer">
+            <RouterLink to="/join/surveylist" class="to_answer">
               <i class="fa-solid fa-check-to-slot fa-lg" style="color: #8dba79;"></i>
               參與問卷
             </RouterLink>
           </li>
           <li class="">
-            <RouterLink to="/create" class="to_create">
+            <RouterLink to="/create/survey_info" class="to_create">
               <i class="fa-solid fa-circle-plus fa-lg" style="color: #8dba79;"></i>
               建立問卷
             </RouterLink>

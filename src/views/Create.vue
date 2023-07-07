@@ -1,66 +1,119 @@
 
 <script>
 import { RouterLink, RouterView } from "vue-router";
+import axios from 'axios';
+
 // import { ref, watch } from 'vue';
 
-import CCreator from "../components/CCreator.vue";
 import CSurvey from "../components/CSurvey.vue";
 import CQuestions from "../components/CQuestions.vue";
 import CCheck from "../components/CCheck.vue";
 
 export default {
     components: {
-        CCreator,
         CSurvey,
         CQuestions,
         CCheck,
     },
     data() {
         return {
-            title: '',
-            description: '',
-            start_time: '',
-            end_time: '',
-            ques_opt: [],
-            creator_name: '',
-            creator_phone: '',
-            creator_email: '',
-            creator_age: 0,
+            title: "",
+            description: "",
+            startDate: null,
+            endDate: null,
+            createDate: null,
+            question_list: null,
+
+            //用網址抓id、session
+            surveyId: null,
+            surveyData: null,
+
+            //環境變數
+            findOneSurveyAPI: import.meta.env.VITE_FIND_ONE_SURVEY,
+
         }
     },
     methods: {
-        getCreatorData(saveCreatorData) {
-            this.creator_name = saveCreatorData.creator_name;
-            this.creator_phone = saveCreatorData.creator_phone;
-            this.creator_email = saveCreatorData.creator_email;
-            this.creator_age = saveCreatorData.creator_age;
-        },
         getSurveyData(saveSurveyData) {
-            this.title = saveSurveyData.title;
-            this.description = saveSurveyData.description;
-            this.start_time = saveSurveyData.start_time;
-            this.end_time = saveSurveyData.end_time;
+            if (saveSurveyData) {
+                this.surveyId = saveSurveyData.surveyId;
+                this.title = saveSurveyData.title;
+                this.description = saveSurveyData.description;
+                this.startDate = saveSurveyData.startDate;
+                this.endDate = saveSurveyData.endDate;
+            }
         },
         getQuestionsData(saveQuestionData) {
-            this.ques_opt = saveQuestionData;
+            if (saveQuestionData) {
+                this.question_list = saveQuestionData;
+            }
+        },
+        getCheckData(saveCheckData) {
+            if (saveCheckData) {
+                this.createDate = saveCheckData.createDate;
+            }
         },
         consoleAll() {
-            console.log("第一頁");
-            console.log(this.creator_name);
-            console.log(this.creator_phone);
-            console.log(this.creator_email);
-            console.log(this.creator_age);
-            console.log("第二頁");
-            console.log(this.title);
-            console.log(this.description);
-            console.log(this.start_time);
-            console.log(this.end_time);
-            console.log("第三頁");
-            console.log(this.ques_opt);
+            console.log("===問卷===");
+            console.log("surveyId=" + this.surveyId);
+            console.log("title=" + this.title);
+            console.log("description=" + this.description);
+            console.log("startDate=" + this.startDate);
+            console.log("endDate=" + this.endDate);
+            console.log("createDate=" + this.createDate);
+            console.log("===問題===");
+            console.log("question_list=");
+            console.log(this.question_list);
+        },
+        getUrlSurveyId() {
+            const survey_id = this.$route.params.surveyId;
+            if (typeof survey_id !== 'undefined' && survey_id !== null) {
+                const requestdata = {
+                    'search_survey_id': survey_id,
+                }
+                axios({
+                    method: 'post',
+                    url: this.findOneSurveyAPI,
+                    data: requestdata,
+                })
+                    .then((res) => {
+                        console.log(res.data);
+                        this.surveyId = res.data.survey.surveyId;
+                        this.title = res.data.survey.title;
+                        this.description = res.data.survey.description;
+                        this.startDate = res.data.survey.startDate;
+                        this.endDate = res.data.survey.endDate;
+                        this.createDate = res.data.survey.createDate;
+                        this.question_list = res.data.questionList;
+                    }).then(() => {
+                        this.surveyData = {
+                            surveyId: this.surveyId,
+                            title: this.title,
+                            description: this.description,
+                            startDate: this.startDate,
+                            endDate: this.endDate,
+                            createDate: this.endDate,
+                        }
+                        console.log(this.surveyData);
+                        //存進session
+                        localStorage.setItem('saveSurvey', JSON.stringify(this.surveyData));
+                        localStorage.setItem('questionData', JSON.stringify(this.question_list));
+                        setTimeout(() => {
+                            // 延遲 1 秒後執行跳頁操作
+                            this.$router.push('/create/survey_info');
+                        }, 500); // 1000 毫秒 = 1 秒
+                    })
+            } else {
+                // surveyid 不存在
+                console.log("新增模式");
+                this.surveyId = null;
+                this.title = ""; // 設定為預設值
+            }
         }
     },
     created() {
-        this.$router.push('/create/creator');
+        //取網址上的surveyId+加到session裡
+        this.getUrlSurveyId();
     }
 };
 </script>
@@ -70,15 +123,6 @@ export default {
         <h2 class="title">建立問卷</h2>
         <div class="bar">
             <!-- 用v-if去抓 如果為這個路由時 變更樣式 -->
-            <RouterLink to="/create/creator" class="link" v-if="$route.path === '/create/creator'">
-                <i class="fa-solid fa-child fa-xl"></i>
-                創建者資訊
-            </RouterLink>
-            <RouterLink to="/create/creator" class="link" v-else>
-                <i class="fa-solid fa-child fa-lg"></i>
-                創建者資訊
-            </RouterLink>
-
             <RouterLink to="/create/survey_info" class="link" v-if="$route.path === '/create/survey_info'">
                 <i class="fa-solid fa-clipboard-question fa-xl"></i>
                 問卷資訊
@@ -103,10 +147,9 @@ export default {
             </RouterLink>
         </div>
         <div class="show_step">
-            <CCreator v-if="$route.path === '/create/creator'" @saveCreator="getCreatorData" />
-            <CSurvey v-else-if="$route.path === '/create/survey_info'" @saveSurvey="getSurveyData" />
+            <CSurvey v-if="$route.path === '/create/survey_info'" @saveSurvey="getSurveyData" />
             <CQuestions v-else-if="$route.path === '/create/questions'" @saveQuestions="getQuestionsData" />
-            <CCheck v-else-if="$route.path === '/create/check'" />
+            <CCheck v-else-if="$route.path === '/create/check'" @saveCheck="getCheckData" />
         </div>
     </div>
 </template>
@@ -156,7 +199,7 @@ export default {
     .show_step {
         background-color: #fff;
         border: 2px solid #000000;
-        width: 80%;
+        width: 90%;
         margin: auto;
         margin-bottom: 100px;
     }

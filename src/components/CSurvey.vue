@@ -2,57 +2,31 @@
 export default {
     data() {
         return {
-            //預設值
-            title: '',
-            description: '',
-            start_time: '',
-            end_time: '' //預設開始加七天
+
+            //回傳父層的
+            surveyData: {
+                surveyId: null, //確認是否為更新模式
+                title: '',
+                description: '',
+                startDate: null,
+                endDate: null,
+            },
+
+            //環境變數API
+            findOneSurveyAPI: import.meta.env.VITE_FIND_ONE_SURVEY,
+            updateServeyAPI: import.meta.env.VITE_UPDATE_SURVEY,
         }
     },
-    methods: {
-        //將資料傳出去
-        saveSurvey() {
-            if (this.title.trim() === "" || this.description.trim() === "" || this.start_time.trim() === "" || this.end_time.trim() === "") {
-                this.$swal({
-                    icon: 'error',
-                    title: '錯誤',
-                    text: '格子不可為空!',
-                    footer: '每個格子皆為必填'
-                });
-                return;
-            }
-
-            //存進session
-            const surveyData = {
-                title: this.title,
-                description: this.description,
-                start_time: this.start_time,
-                end_time: this.end_time,
-            }
-
-            this.$swal({
-                icon: 'success',
-                title: '成功暫存',
-                text: '現在可以切換其它頁面了',
-                footer: '暫存狀態下，問卷還不算完成唷!'
-            });
-
-            //把資料傳回父層
-            this.$emit('saveSurvey', surveyData)
-
-            //存進session裡:)
-            localStorage.setItem('surveyData', JSON.stringify(surveyData))
-        },
-    },
     created() {
-        //頁面一開始就從session抓出來:)
-        const savedSurveyData = localStorage.getItem('surveyData');
+        // 頁面一開始就從session抓出來:)
+        const savedSurveyData = localStorage.getItem('saveSurvey');
         if (savedSurveyData) {
-            const surveyData = JSON.parse(savedSurveyData);
-            this.title = surveyData.title;
-            this.description = surveyData.description;
-            this.start_time = surveyData.start_time;
-            this.end_time = surveyData.end_time;
+            const surveyDatas = JSON.parse(savedSurveyData);
+            this.surveyData.surveyId = surveyDatas.surveyId;
+            this.surveyData.title = surveyDatas.title;
+            this.surveyData.description = surveyDatas.description;
+            this.surveyData.startDate = surveyDatas.startDate;
+            this.surveyData.endDate = surveyDatas.endDate;
         }
 
         //設定時區
@@ -60,43 +34,63 @@ export default {
         // 時區偏移量，以毫秒為單位
         const timezoneOffset = now.getTimezoneOffset() * 60000;
 
-        //設定預設開始/結束時間
-        this.start_time = new Date(now.getTime() - timezoneOffset).toISOString().slice(0, 16).replace('T', ' ');
-        this.end_time = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000 - timezoneOffset).toISOString().slice(0, 16).replace('T', ' ');
-    }
+        //設定預設開始/結束時間(如果session有就不設定ㄌ)
+        if (!this.surveyData.startDate) {
+            this.surveyData.startDate = new Date(now.getTime() - timezoneOffset).toISOString().slice(0, 10);
+        }
+        if (!this.surveyData.endDate) {
+            this.surveyData.endDate = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000 - timezoneOffset).toISOString().slice(0, 10);
+        }
+    },
+    methods: {
+        saveSession() {
+            this.$emit('saveSurvey', this.surveyData);
+            localStorage.setItem('saveSurvey', JSON.stringify(this.surveyData));
+        },
 
+    },
+    watch: {
+        'surveyData.title': function (newVal) {
+            this.surveyData.title = newVal;
+            this.saveSession()
+        },
+        'surveyData.description': function (newVal) {
+            this.surveyData.description = newVal;
+            this.saveSession()
+        },
+        'surveyData.startDate': function (newVal) {
+            this.surveyData.startDate = newVal;
+            this.saveSession()
+        },
+        'surveyData.endDate': function (newVal) {
+            this.surveyData.endDate = newVal;
+            this.saveSession()
+        },
+    }
 }
 </script>
 <template>
     <div class="main">
-        <!-- <h1>問卷資訊</h1>
-        <hr> -->
         <div class="box">
             <h2>問卷標題</h2>
-            <input type="text" name="title" id="title" placeholder="早餐吃什麼？" v-model="title">
+            <input type="text" name="title" id="title" placeholder="(必填)" v-model="surveyData.title">
         </div>
         <div class="box">
             <h2>問卷描述</h2>
-            <textarea name="description" id="description" placeholder="中式西式日式台式，你喜歡哪一種？" v-model="description"></textarea>
+            <textarea name="description" id="description" placeholder="(選填)" v-model="surveyData.description"></textarea>
         </div>
         <hr>
         <div class="box">
             <h2>開始時間</h2>
-            <input type="datetime-local" name="start_time" id="start_time" placeholder="example@email.com"
-                v-model="start_time">
+            <input type="date" name="startDate" id="startDate" placeholder="example@email.com"
+                v-model="surveyData.startDate">
         </div>
         <div class="box">
             <h2>結束時間</h2>
-            <input type="datetime-local" name="end_time" id="end_time" placeholder="" v-model="end_time">
+            <input type="date" name="endDate" id="endDate" placeholder="" v-model="surveyData.endDate">
         </div>
 
         <p class="des">※注意：問卷送出後，開始前都可編輯，開始後便不可編輯，但可檢視投票統計。</p>
-        <hr>
-        <p class="des_save">※注意：記得按下暫存，否則資料將會遺失。</p>
-        <p class="des_save">※暫存下來後尚未送出都不算建立完成唷!</p>
-        <button type="button" class="save_btn" @click="saveSurvey">
-            <i class="fa-solid fa-floppy-disk fa-lg"></i>暫存
-        </button>
     </div>
 </template>
 <style lang="scss" scoped>
@@ -136,30 +130,6 @@ export default {
             font-size: 20px;
         }
 
-    }
-
-    .save_btn {
-        position: absolute;
-        bottom: 20px;
-        right: 20px;
-        height: 40px;
-        width: 100px;
-        border-radius: 5px;
-        background-color: #C1FFA4;
-        border-color: #1B5400;
-        font-size: 20px;
-        font-weight: bolder;
-        transition: 0.3s;
-
-        &:hover {
-            scale: 1.05;
-            background-color: #a6ff7c;
-        }
-
-        &:active {
-            scale: 1;
-            background-color: #b2f692;
-        }
     }
 
     .des {
