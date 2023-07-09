@@ -136,6 +136,7 @@ export default {
                     this.filterBySurveyState();
 
                 } else if (newVal === "開放中") {
+                    this.search_end_date = null;
                     this.search_start_date = new Date(now.getTime() + 1 * 24 * 60 * 60 * 1000 - timezoneOffset).toISOString().slice(0, 10);
                     this.search_end_date = new Date(now.getTime() - 1 * 24 * 60 * 60 * 1000 - timezoneOffset).toISOString().slice(0, 10);
                     this.filterBySurveyState();

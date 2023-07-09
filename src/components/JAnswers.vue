@@ -27,6 +27,11 @@ export default {
             findOneSurveyAPI: import.meta.env.VITE_FIND_ONE_SURVEY,
             //用網址抓id
             surveyId: null,
+
+            //提示
+            showTypeSingle: '單選題 一次只能選擇一個檔案',
+            showTypeMutiple: '多選題 可以依照符合條件全部勾選',
+            showTypeText: '文字題 快發揮你的創意，字數不限!',
         }
     },
     methods: {
@@ -42,19 +47,11 @@ export default {
             console.log(this.answerName, this.answerPhone, this.answerEmail, this.answerAge)
             //資訊欄
             if (this.answerName === "" || this.answerPhone === "" || this.answerEmail === "" || this.answerAge <= 0) {
-                this.$swal({
-                    icon: 'error',
-                    title: '錯誤!',
-                    text: '填寫者資訊欄有空白或年紀錯誤!'
-                });
+                this.showPersonErrorAlert()
             }
 
             if (this.answerOption.length <= 0) {
-                this.$swal({
-                    icon: 'error',
-                    title: '錯誤!',
-                    text: '不可提交空白答案!'
-                });
+                this.showEmptyAlert();
             }
 
             //篩選必填題目
@@ -64,23 +61,23 @@ export default {
                 console.log("沒有必填，直接送出")
 
             } else {
+
                 for (let i = 0; i < this.requiredQuestions.length; i++) {
                     const requiredId = this.requiredQuestions[i].questionId;
 
+                    console.log(this.requiredQuestions[i])
                     for (let j = 0; j < this.answerOption.length; j++) {
                         const answerOptionId = this.answerOption[j].questionId;
 
+                        // console.log(this.answerOption[j]);
                         //相同id時，檢查答案是否為空
+
+                        console.log(this.answerOption[j].selectedOptionValue[0])
+                        console.log(this.answerOption[j])
                         if (requiredId.toString() === answerOptionId) {
-                            if (this.answerOption[j].selectedOptionValue.length <= 0 || this.answerOption[j].selectedOptionValue == null || this.answerOption[j].selectedOptionValue == "") {
-                                this.$swal({
-                                    icon: 'error',
-                                    title: '錯誤!',
-                                    text: '',
-                                    html: `尚有必填欄位尚未填寫唷:
-                                ${this.requiredQuestions[i].question}`
-                                });
-                            }
+                            // if (this.answerOption[j].selectedOptionValue.length <= 0 || typeof this.answerOption[j].selectedOptionValue[j] === 'undefined' || this.answerOption[j].selectedOptionValue[j] === 'undefined' || ) {
+                            //     this.showErrorAlert()
+                            // }
                         } else {
                             console.log("都填寫完囉")
                         }
@@ -90,14 +87,73 @@ export default {
 
 
         },
-        handleOptionChange(event, questionId) {
+        showEmptyAlert() {
+            const Toast = this.$swal.mixin({
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 2000,
+                // timerProgressBar: true,
+                didOpen: (toast) => {
+                    toast.addEventListener('mouseenter', this.$swal.stopTimer);
+                    toast.addEventListener('mouseleave', this.$swal.resumeTimer);
+                }
+            });
+
+            Toast.fire({
+                icon: 'error',
+                title: '錯誤',
+                html: `請勿空白`
+            });
+        },
+        showPersonErrorAlert() {
+            const Toast = this.$swal.mixin({
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 2000,
+                // timerProgressBar: true,
+                didOpen: (toast) => {
+                    toast.addEventListener('mouseenter', this.$swal.stopTimer);
+                    toast.addEventListener('mouseleave', this.$swal.resumeTimer);
+                }
+            });
+
+            Toast.fire({
+                icon: 'error',
+                title: '錯誤',
+                html: `填寫者資訊還有資料未填寫!`
+            });
+        },
+        showErrorAlert() {
+            const Toast = this.$swal.mixin({
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 2000,
+                // timerProgressBar: true,
+                didOpen: (toast) => {
+                    toast.addEventListener('mouseenter', this.$swal.stopTimer);
+                    toast.addEventListener('mouseleave', this.$swal.resumeTimer);
+                }
+            });
+
+            Toast.fire({
+                icon: 'error',
+                title: '錯誤',
+                html: `必填欄位尚未填寫唷:
+                ${this.requiredQuestions[i].question}`
+            });
+        },
+        handleOptionChange(event, questionId, option, questionIndex) {
             const question = this.questionList.find(question => question.questionId === questionId);
 
             if (question.questionType === '單選') {
-                const selectedOptionValue = event.target.value;
+                const selectedOptionValue = [event.target.value];
+                // const selectedOptionValue = event.target.value;
 
                 // 將答案存儲到對應的問答題答案對象中
-                this.selectedOptionValue[questionId] = selectedOptionValue;
+                this.selectedOptionValue[questionIndex] = selectedOptionValue;
 
                 // console.log(this.selectedOptionValue);
             } else if (question.questionType === '多選') {
@@ -105,18 +161,18 @@ export default {
 
                 // 確保 selectedOptionValue[questionId] 是一個陣列
                 if (!Array.isArray(this.selectedOptionValue[questionId])) {
-                    this.selectedOptionValue[questionId] = [];
+                    this.selectedOptionValue[questionIndex] = [];
                 }
 
                 // 檢查選項是否已經存在於陣列中
-                const index = this.selectedOptionValue[questionId].indexOf(selectedOptionValue);
+                const index = this.selectedOptionValue[questionIndex].indexOf(selectedOptionValue);
 
                 if (index > -1) {
                     // 如果選項已存在，則從陣列中移除
-                    this.selectedOptionValue[questionId].splice(index, 1);
+                    this.selectedOptionValue[questionIndex].splice(index, 1);
                 } else {
                     // 如果選項不存在，則添加到陣列中
-                    this.selectedOptionValue[questionId].push(selectedOptionValue);
+                    this.selectedOptionValue[questionIndex].push(selectedOptionValue);
                 }
 
                 // console.log(this.selectedOptionValue);
@@ -127,14 +183,25 @@ export default {
                 // console.log('Question ID:', questionId);
 
                 // 將答案存儲到對應的問答題答案對象中
-                this.selectedOptionValue[questionId] = [selectedOptionValue];
+                this.selectedOptionValue[questionIndex] = [selectedOptionValue];
             }
+            console.log('this.selectedOptionValue:', this.selectedOptionValue)
 
             // 將物件轉換成陣列
-            const answerArray = this.selectedOptionValue.map((selectedOptionValue, questionId) => {
+            // const answerArray = this.selectedOptionValue.map((selectedOptionValue, questionId) => {
+            //     return {
+            //         questionId,
+            //         selectedOptionValue
+            //     };
+            // });
+
+            // 將物件轉換成陣列2
+            const keysArray = Object.keys(this.selectedOptionValue);
+            const answerArray = keysArray.map(questionId => {
+                const selectedOptionValue = this.selectedOptionValue[questionIndex];
                 return {
                     questionId,
-                    selectedOptionValue
+                    selectedOptionValue: selectedOptionValue !== undefined ? selectedOptionValue : null
                 };
             });
 
@@ -200,22 +267,27 @@ export default {
         <div class="answer_area">
             <h1>{{ title }}</h1>
             <h2>{{ description }}</h2>
-            <div class="box" v-for="(questions, index) in questionList">
+            <div class="box" v-for="(questions, questionIndex) in questionList">
 
                 <h3>
                     <div class="h3_div">
                         <!-- 類型 -->
                         <span class="show_type" v-if="questions.questionType === '多選'">
                             多選題
+                            <i class="fa-regular fa-circle-question fa-lg" style="color: #39b500;" :title="showTypeMutiple">
+                            </i>
                         </span>
                         <span class="show_type" v-else-if="questions.questionType === '單選'">
                             單選題
+                            <i class="fa-regular fa-circle-question fa-lg" style="color: #39b500;" :title="showTypeSingle">
+                            </i>
                         </span>
                         <span class="show_type" v-else>
                             問答題
+                            <i class="fa-regular fa-circle-question fa-lg" style="color: #39b500;" :title="showTypeText">
+                            </i>
                         </span>
-                        <i class="fa-regular fa-circle-question fa-lg" style="color: #39b500;">
-                        </i>
+
                     </div>
                     <span class="question__a">
                         {{ questions.question }}
@@ -231,7 +303,7 @@ export default {
                 <div v-if="questions.questionType === '多選'">
                     <div v-for="(option, optionIndex) in questions.options.split(';')" :key="optionIndex">
                         <input type="checkbox" :id="`option${questions.questionId}_${optionIndex}`" :value="option"
-                            @input="handleOptionChange($event, questions.questionId, option)">
+                            @input="handleOptionChange($event, questions.questionId, option, questionIndex)">
                         <label :for="`option${questions.questionId}_${optionIndex}`">
                             {{ option }}
                         </label>
@@ -241,7 +313,7 @@ export default {
                 <!-- 單選 -->
                 <div v-else-if="questions.questionType === '單選'">
                     <select v-model="selectedOptionValue[questions.questionId]"
-                        @change="handleOptionChange($event, questions.questionId, selectedOptionValue)">
+                        @change="handleOptionChange($event, questions.questionId, selectedOptionValue, questionIndex)">
                         <option v-for="(option, optionIndex) in questions.options.split(';')" :key="optionIndex"
                             :value="option">
                             {{ option }}
@@ -253,7 +325,7 @@ export default {
                 <!-- 問答 -->
                 <div v-else>
                     <textarea cols="30" rows="5" placeholder="輸入答案"
-                        @input="handleOptionChange($event, questions.questionId, $event.target.value, -1)"></textarea>
+                        @input="handleOptionChange($event, questions.questionId, questionIndex, $event.target.value, -1)"></textarea>
                 </div>
             </div>
         </div>
@@ -268,6 +340,32 @@ export default {
 <style lang="scss">
 .main {
     position: relative;
+
+    //懸浮視窗
+    .fa-circle-question {
+        position: relative;
+        display: inline-block;
+
+        &::after {
+            content: attr(title);
+            visibility: hidden;
+            background-color: #c9ffb0;
+            color: #000000;
+            padding: 5px;
+            margin: 10px;
+            border-radius: 4px;
+            font-size: 16px;
+            font-family: 'cjkFonts';
+            opacity: 0;
+            transition: visibility 3s, opacity 0.1s ease-in-out;
+        }
+
+        &:hover::after {
+            visibility: visible;
+            opacity: 1;
+        }
+    }
+
 
     hr {
         border: 2px dashed #39b500;

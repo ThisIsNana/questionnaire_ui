@@ -119,7 +119,7 @@ export default {
 </script>
 <template>
     <div class="main">
-        <button @click="consoleAll">Console目前的資料</button>
+        <!-- d<button @click="consoleAll">Console目前的資料</button> -->
         <h2 class="title">建立問卷</h2>
         <div class="bar">
             <!-- 用v-if去抓 如果為這個路由時 變更樣式 -->
