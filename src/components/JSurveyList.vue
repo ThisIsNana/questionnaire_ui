@@ -319,6 +319,11 @@ export default {
                 padding: 5px;
                 font-size: 16px;
             }
+
+            input[type="date"] {
+                font-family: 'cjkFonts', sans-serif;
+            }
+
         }
     }
 
@@ -403,6 +408,7 @@ export default {
                     word-break: break-all;
                     font-size: calc(3px + 1vw);
                 }
+
 
 
                 .state,

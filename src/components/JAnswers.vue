@@ -20,10 +20,10 @@ export default {
             answerOption: [],  //存答案資料
             requiredQuestions: [], //存必填題目資料
             changedData: null,
+            mutipleSelectedValue: [], // 存儲多選問題的選項值
             selectedOptionValue: {}, // 存儲每個問題的選項值
 
             //環境變數API
-            findOneSurveyAPI: import.meta.env.VITE_FIND_ONE_SURVEY,
             findOneSurveyAPI: import.meta.env.VITE_FIND_ONE_SURVEY,
             //用網址抓id
             surveyId: null,
@@ -34,13 +34,63 @@ export default {
             showTypeText: '文字題 快發揮你的創意，字數不限!',
         }
     },
+    created() {
+        //取網址上的surveyId
+        const survey_id = this.$route.params.surveyId;
+
+        if (typeof survey_id !== 'undefined' && survey_id !== null) {
+            const requestdata = {
+                search_survey_id: survey_id,
+            }
+            axios({
+                method: 'post',
+                url: this.findOneSurveyAPI,
+                data: requestdata,
+            })
+                .then((res) => {
+                    // console.log(res.data);
+                    this.answerSurveyId = res.data.survey.surveyId;
+                    this.questionList = res.data.questionList
+                    this.title = res.data.survey.title;
+                    this.description = res.data.survey.description;
+                    // 生成一個有N個長度的空元素的陣列
+                    setTimeout(() => {
+                        this.selectedOptionValue = Array(res.data.questionList.length).fill(null);
+                        console.log("初期生成的selectedOptionValue空陣列長度:", this.selectedOptionValue.length);
+                    }, 1000);
+                }).catch((err) => {
+                    console.log(err)
+                });
+        } else {
+            // surveyid 不存在
+            console.log("新增模式");
+        }
+    },
     methods: {
         clear() {
-            this.answerOption = [];
-            this.answerName = '';
-            this.answerPhone = '';
-            this.answerEmail = '';
-            this.answerAge = 0;
+            console.log("-清空-")
+            this.$swal({
+                icon: 'question',
+                iconColor: '#39b500',
+                title: '確定要清空嗎?',
+                showComfirmButtom: true,
+                showCancelButton: true,
+                confirmButtonText: '確定',
+                cancelButtonText: '取消',
+                confirmButtonColor: '#39b500',
+                cancelButtonColor: '#b80000',
+                reverseButtons: true,
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // 回到第一頁
+                    this.$emit('saveSurvey', null)
+                    this.$emit('saveQuestions', null)
+                    this.$emit('saveCheck', null)
+                    this.$emit('saveAnswer', null)
+                    localStorage.clear();
+                    // this.$router.push(this.surveyId);
+                }
+            })
         },
         checkEmpty() {
 
@@ -145,104 +195,54 @@ export default {
                 ${this.requiredQuestions[i].question}`
             });
         },
-        handleOptionChange(event, questionId, option, questionIndex) {
+        handleOptionChange(event, questionId, required, questionIndex) {
             const question = this.questionList.find(question => question.questionId === questionId);
 
-            if (question.questionType === '單選') {
-                const selectedOptionValue = [event.target.value];
-                // const selectedOptionValue = event.target.value;
+            const selectedOptionValue = event.target.value;
 
-                // 將答案存儲到對應的問答題答案對象中
-                this.selectedOptionValue[questionIndex] = selectedOptionValue;
-
-                // console.log(this.selectedOptionValue);
-            } else if (question.questionType === '多選') {
-                const selectedOptionValue = event.target.value;
-
-                // 確保 selectedOptionValue[questionId] 是一個陣列
-                if (!Array.isArray(this.selectedOptionValue[questionId])) {
-                    this.selectedOptionValue[questionIndex] = [];
-                }
-
-                // 檢查選項是否已經存在於陣列中
-                const index = this.selectedOptionValue[questionIndex].indexOf(selectedOptionValue);
-
-                if (index > -1) {
-                    // 如果選項已存在，則從陣列中移除
-                    this.selectedOptionValue[questionIndex].splice(index, 1);
-                } else {
-                    // 如果選項不存在，則添加到陣列中
-                    this.selectedOptionValue[questionIndex].push(selectedOptionValue);
-                }
-
-                // console.log(this.selectedOptionValue);
-            } else if (question.questionType === '簡答') {
-                const selectedOptionValue = event.target.value;
-                // console.log('event:', event);
-                // console.log('Selected option:', selectedOptionValue);
-                // console.log('Question ID:', questionId);
-
-                // 將答案存儲到對應的問答題答案對象中
-                this.selectedOptionValue[questionIndex] = [selectedOptionValue];
+            if (required === true &&
+                selectedOptionValue === ""
+                || selectedOptionValue === 'undefined'
+                || selectedOptionValue === null
+                || selectedOptionValue === []) {
+                    let inputClass = document.getElementById()
             }
-            console.log('this.selectedOptionValue:', this.selectedOptionValue)
 
-            // 將物件轉換成陣列
-            // const answerArray = this.selectedOptionValue.map((selectedOptionValue, questionId) => {
+            if (question.questionType === '單選') {
+                // 將答案存儲到對應的問答題答案對象中
+                this.selectedOptionValue[questionIndex] = { questionId: questionId, selectedOptionValue: [selectedOptionValue] }
+            }
+
+            else if (question.questionType === '多選') {
+                if (this.mutipleSelectedValue === [] || this.mutipleSelectedValue.indexOf(selectedOptionValue) < 0) {
+                    this.mutipleSelectedValue.push(selectedOptionValue)
+                }
+                else {
+                    this.mutipleSelectedValue.splice(this.mutipleSelectedValue.indexOf(selectedOptionValue), 1);
+                    //splice(n,m) = 從第N個index開始,刪除M個元素
+                }
+                this.selectedOptionValue[questionIndex] = { questionId: questionId, selectedOptionValue: this.mutipleSelectedValue }
+            }
+
+            else if (question.questionType === '簡答') {
+                this.selectedOptionValue[questionIndex] = { questionId: questionId, selectedOptionValue: selectedOptionValue }
+            }
+            console.log('this.現在已選:', this.selectedOptionValue)
+
+            // const keysArray = Object.keys(this.selectedOptionValue);
+            // const answerArray = keysArray.map(questionId => {
+            //     const selectedOptionValue = this.selectedOptionValue[questionIndex];
             //     return {
             //         questionId,
-            //         selectedOptionValue
+            //         selectedOptionValue: selectedOptionValue !== undefined ? selectedOptionValue : null
             //     };
             // });
 
-            // 將物件轉換成陣列2
-            const keysArray = Object.keys(this.selectedOptionValue);
-            const answerArray = keysArray.map(questionId => {
-                const selectedOptionValue = this.selectedOptionValue[questionIndex];
-                return {
-                    questionId,
-                    selectedOptionValue: selectedOptionValue !== undefined ? selectedOptionValue : null
-                };
-            });
-
-            console.log(answerArray);
-            this.answerOption = answerArray;
-            console.log("轉換成answerArray.length:", this.answerOption.length);
+            // console.log(answerArray);
+            // this.answerOption = answerArray;
+            // console.log("轉換成answerArray.length:", this.answerOption.length);
         }
 
-    },
-    created() {
-        //取網址上的surveyId+加到session裡
-        const survey_id = this.$route.params.surveyId;
-
-        if (typeof survey_id !== 'undefined' && survey_id !== null) {
-            const requestdata = {
-                search_survey_id: survey_id,
-            }
-            axios({
-                method: 'post',
-                url: this.findOneSurveyAPI,
-                data: requestdata,
-            })
-                .then((res) => {
-                    console.log(res.data);
-                    this.answerSurveyId = res.data.survey.surveyId;
-                    this.questionList = res.data.questionList
-                    this.title = res.data.survey.title;
-                    this.description = res.data.survey.description;
-                    // 生成一個有N個長度的空元素的陣列
-                    setTimeout(() => {
-                        this.selectedOptionValue = Array(res.data.questionList.length).fill(null);
-                        console.log("初期生成的selectedOptionValue空陣列長度:", this.selectedOptionValue.length);
-                    }, 1000);
-                }).catch((err) => {
-                    console.log(err)
-                });
-        } else {
-            // surveyid 不存在
-            console.log("新增模式");
-            this.surveyId = null;
-        }
     },
 }
 </script>
@@ -303,7 +303,7 @@ export default {
                 <div v-if="questions.questionType === '多選'">
                     <div v-for="(option, optionIndex) in questions.options.split(';')" :key="optionIndex">
                         <input type="checkbox" :id="`option${questions.questionId}_${optionIndex}`" :value="option"
-                            @input="handleOptionChange($event, questions.questionId, option, questionIndex)">
+                            @input="handleOptionChange($event, questions.questionId, question.required, questionIndex)">
                         <label :for="`option${questions.questionId}_${optionIndex}`">
                             {{ option }}
                         </label>
@@ -312,8 +312,8 @@ export default {
 
                 <!-- 單選 -->
                 <div v-else-if="questions.questionType === '單選'">
-                    <select v-model="selectedOptionValue[questions.questionId]"
-                        @change="handleOptionChange($event, questions.questionId, selectedOptionValue, questionIndex)">
+                    <select @change="handleOptionChange($event, questions.questionId, question.required, questionIndex)"
+                        value="">
                         <option v-for="(option, optionIndex) in questions.options.split(';')" :key="optionIndex"
                             :value="option">
                             {{ option }}
@@ -325,7 +325,7 @@ export default {
                 <!-- 問答 -->
                 <div v-else>
                     <textarea cols="30" rows="5" placeholder="輸入答案"
-                        @input="handleOptionChange($event, questions.questionId, questionIndex, $event.target.value, -1)"></textarea>
+                        @input="handleOptionChange($event, questions.questionId, question.required, questionIndex)"></textarea>
                 </div>
             </div>
         </div>
@@ -409,6 +409,11 @@ export default {
             input {
                 width: 35%;
                 font-size: 20px;
+            }
+
+            //必填未填時會顯示的框限
+            .error-border {
+                border: 1px solid #ff4242;
             }
         }
 

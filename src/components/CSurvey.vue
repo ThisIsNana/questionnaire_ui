@@ -11,6 +11,7 @@ export default {
                 startDate: null,
                 endDate: null,
             },
+            createDate: null,
 
             //環境變數API
             findOneSurveyAPI: import.meta.env.VITE_FIND_ONE_SURVEY,
@@ -33,6 +34,7 @@ export default {
         const now = new Date();
         // 時區偏移量，以毫秒為單位
         const timezoneOffset = now.getTimezoneOffset() * 60000;
+        this.createDate = new Date(now.getTime() - timezoneOffset).toISOString().slice(0, 10);
 
         //設定預設開始/結束時間(如果session有就不設定ㄌ)
         if (!this.surveyData.startDate) {
@@ -82,7 +84,7 @@ export default {
         <hr>
         <div class="box">
             <h2>開始時間</h2>
-            <input type="date" name="startDate" id="startDate" placeholder="example@email.com"
+            <input type="date" name="startDate" id="startDate" placeholder="example@email.com" :min="createDate"
                 v-model="surveyData.startDate">
         </div>
         <div class="box">
@@ -119,8 +121,12 @@ export default {
         input {
             margin: 10px;
             height: 30px;
-            width: 60%;
+            width: 30%;
             font-size: 20px;
+        }
+
+        input[type="date"] {
+            font-family: 'cjkFonts', sans-serif;
         }
 
         textarea {
