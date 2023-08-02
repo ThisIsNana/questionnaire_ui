@@ -1,18 +1,33 @@
-<script setup>
-import { RouterLink, RouterView } from 'vue-router'
+<script>
+import { RouterView } from "vue-router";
+import HeaderView from './components/Header.vue';
+import FooterView from './components/Footer.vue';
+
+// export default defineComponent({
+//   components: { FooterView, HeaderView, HomeBoxView }
+// })
+
+export default {
+  components: {
+    FooterView,
+    HeaderView,
+  },
+  computed: {
+  }
+}
 </script>
 
 <template>
-  <header>
-    <div class="wrapper">
-      <nav>
-        <RouterLink to="/">Home</RouterLink>
-        <RouterLink to="/about">About</RouterLink>
-      </nav>
-    </div>
-  </header>
-
-  <RouterView />
+  <div class="container">
+    <HeaderView />
+    <RouterView />
+    <FooterView class="footer" />
+  </div>
 </template>
 
-<style scoped></style>
+<style scoped>
+.footer {
+  position: fixed;
+  bottom: 0;
+}
+</style>
