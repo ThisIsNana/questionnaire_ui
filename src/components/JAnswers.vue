@@ -8,6 +8,7 @@ export default {
             title: '',
             description: '',
             questionList: [],
+            isInvalid: [], //變更樣式用
 
             //存session跟axios的requestBody
             //參加者資料
@@ -18,13 +19,14 @@ export default {
             answerEmail: '',
             answerAge: 0,
             answerOption: [],  //存答案資料
-            requiredQuestions: [], //存必填題目資料
             changedData: null,
             mutipleSelectedValue: [], // 存儲多選問題的選項值
             selectedOptionValue: {}, // 存儲每個問題的選項值
+            rememberMe: false,
 
             //環境變數API
             findOneSurveyAPI: import.meta.env.VITE_FIND_ONE_SURVEY,
+            addAnswerAPI: import.meta.env.VITE_ADD_ANSWER,
             //用網址抓id
             surveyId: null,
 
@@ -61,101 +63,22 @@ export default {
                 }).catch((err) => {
                     console.log(err)
                 });
+
+            //取得sessionStorage的填寫人資料 ||'' <-提供預設值
+            this.answerName = sessionStorage.getItem('answerName') || "";
+            this.answerPhone = sessionStorage.getItem('answerPhone') || "";
+            this.answerEmail = sessionStorage.getItem('answerEmail') || "";
+            this.answerAge = sessionStorage.getItem('answerAge') || 0;
+            if (sessionStorage.getItem('answerName')) {
+                this.rememberMe = true;
+            }
+
         } else {
             // surveyid 不存在
             console.log("新增模式");
         }
     },
     methods: {
-        clear() {
-            console.log("-清空-")
-            this.$swal({
-                icon: 'question',
-                iconColor: '#39b500',
-                title: '確定要清空嗎?',
-                showComfirmButtom: true,
-                showCancelButton: true,
-                confirmButtonText: '確定',
-                cancelButtonText: '取消',
-                confirmButtonColor: '#39b500',
-                cancelButtonColor: '#b80000',
-                reverseButtons: true,
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    // 回到第一頁
-                    this.$emit('saveSurvey', null)
-                    this.$emit('saveQuestions', null)
-                    this.$emit('saveCheck', null)
-                    this.$emit('saveAnswer', null)
-                    localStorage.clear();
-                    // this.$router.push(this.surveyId);
-                }
-            })
-        },
-        checkEmpty() {
-
-            console.log(this.answerName, this.answerPhone, this.answerEmail, this.answerAge)
-            //資訊欄
-            if (this.answerName === "" || this.answerPhone === "" || this.answerEmail === "" || this.answerAge <= 0) {
-                this.showPersonErrorAlert()
-            }
-
-            if (this.answerOption.length <= 0) {
-                this.showEmptyAlert();
-            }
-
-            //篩選必填題目
-            this.requiredQuestions = this.questionList.filter((question) => question.required);
-
-            if (this.requiredQuestions.length === 0) {
-                console.log("沒有必填，直接送出")
-
-            } else {
-
-                for (let i = 0; i < this.requiredQuestions.length; i++) {
-                    const requiredId = this.requiredQuestions[i].questionId;
-
-                    console.log(this.requiredQuestions[i])
-                    for (let j = 0; j < this.answerOption.length; j++) {
-                        const answerOptionId = this.answerOption[j].questionId;
-
-                        // console.log(this.answerOption[j]);
-                        //相同id時，檢查答案是否為空
-
-                        console.log(this.answerOption[j].selectedOptionValue[0])
-                        console.log(this.answerOption[j])
-                        if (requiredId.toString() === answerOptionId) {
-                            // if (this.answerOption[j].selectedOptionValue.length <= 0 || typeof this.answerOption[j].selectedOptionValue[j] === 'undefined' || this.answerOption[j].selectedOptionValue[j] === 'undefined' || ) {
-                            //     this.showErrorAlert()
-                            // }
-                        } else {
-                            console.log("都填寫完囉")
-                        }
-                    }
-                }
-            }
-
-
-        },
-        showEmptyAlert() {
-            const Toast = this.$swal.mixin({
-                toast: true,
-                position: 'top-end',
-                showConfirmButton: false,
-                timer: 2000,
-                // timerProgressBar: true,
-                didOpen: (toast) => {
-                    toast.addEventListener('mouseenter', this.$swal.stopTimer);
-                    toast.addEventListener('mouseleave', this.$swal.resumeTimer);
-                }
-            });
-
-            Toast.fire({
-                icon: 'error',
-                title: '錯誤',
-                html: `請勿空白`
-            });
-        },
         showPersonErrorAlert() {
             const Toast = this.$swal.mixin({
                 toast: true,
@@ -175,7 +98,7 @@ export default {
                 html: `填寫者資訊還有資料未填寫!`
             });
         },
-        showErrorAlert() {
+        showRequiredErrorAlert() {
             const Toast = this.$swal.mixin({
                 toast: true,
                 position: 'top-end',
@@ -195,22 +118,28 @@ export default {
                 ${this.requiredQuestions[i].question}`
             });
         },
+        //當每個選項有變更
         handleOptionChange(event, questionId, required, questionIndex) {
+
+
             const question = this.questionList.find(question => question.questionId === questionId);
 
             const selectedOptionValue = event.target.value;
 
-            if (required === true &&
-                selectedOptionValue === ""
-                || selectedOptionValue === 'undefined'
-                || selectedOptionValue === null
-                || selectedOptionValue === []) {
-                    let inputClass = document.getElementById()
+            //假如必填卻沒填
+            if (required == true && selectedOptionValue.trim() === ""
+                || selectedOptionValue === "undefined"
+                || selectedOptionValue === []
+                || selectedOptionValue === null) {
+                this.isInvalid[questionIndex] = true;
+            } else {
+                this.isInvalid[questionIndex] = false;
             }
+
 
             if (question.questionType === '單選') {
                 // 將答案存儲到對應的問答題答案對象中
-                this.selectedOptionValue[questionIndex] = { questionId: questionId, selectedOptionValue: [selectedOptionValue] }
+                this.selectedOptionValue[questionIndex] = selectedOptionValue
             }
 
             else if (question.questionType === '多選') {
@@ -221,29 +150,119 @@ export default {
                     this.mutipleSelectedValue.splice(this.mutipleSelectedValue.indexOf(selectedOptionValue), 1);
                     //splice(n,m) = 從第N個index開始,刪除M個元素
                 }
-                this.selectedOptionValue[questionIndex] = { questionId: questionId, selectedOptionValue: this.mutipleSelectedValue }
+                this.selectedOptionValue[questionIndex] = this.mutipleSelectedValue
             }
 
             else if (question.questionType === '簡答') {
-                this.selectedOptionValue[questionIndex] = { questionId: questionId, selectedOptionValue: selectedOptionValue }
+                // console.dir(selectedOptionValue)
+                this.selectedOptionValue[questionIndex] = selectedOptionValue
             }
-            console.log('this.現在已選:', this.selectedOptionValue)
+        },
+        //送出按鈕
+        checkEmpty() {
 
-            // const keysArray = Object.keys(this.selectedOptionValue);
-            // const answerArray = keysArray.map(questionId => {
-            //     const selectedOptionValue = this.selectedOptionValue[questionIndex];
-            //     return {
-            //         questionId,
-            //         selectedOptionValue: selectedOptionValue !== undefined ? selectedOptionValue : null
-            //     };
-            // });
+            //設定填寫時間 --- 時區偏移量，以毫秒為單位
+            const now = new Date();
+            const timezoneOffset = now.getTimezoneOffset() * 60000;
+            this.answerDate = new Date(now.getTime() - timezoneOffset).toISOString().slice(0, 10);
 
-            // console.log(answerArray);
-            // this.answerOption = answerArray;
-            // console.log("轉換成answerArray.length:", this.answerOption.length);
-        }
+            //先確認填寫者是否為空
+            console.log(this.answerName, this.answerPhone, this.answerEmail, this.answerAge)
+            if (this.answerName === "" || this.answerPhone === "" || this.answerEmail === "" || this.answerAge <= 0) {
+                this.showPersonErrorAlert();
+            }
 
+            // 轉換分題的陣列，轉存string
+            // "," 轉 ";"
+            const selectOptStr = this.selectedOptionValue.join(';')
+            // console.log("轉成字串:", selectOptStr)
+
+            this.answerOption = this.selectedOptionValue
+            const requestdata = {
+                'add_response_answer': {
+                    'answerDate': this.answerDate,
+                    'answerName': this.answerName,
+                    'answerPhone': this.answerPhone,
+                    'answerEmail': this.answerEmail,
+                    'answerAge': this.answerAge,
+                    'answerSurveyId': this.answerSurveyId,
+                    'answerOption': selectOptStr,
+                }
+            }
+
+            console.log('終於要存進資料庫：', requestdata);
+
+            axios({
+                method: 'post',
+                url: this.addAnswerAPI,
+                data: requestdata,
+            })
+                .then((res) => {
+                    console.dir(res.data);
+                    if (res.data.questionList !== null || res.data.survey !== null) {
+                        this.$swal({
+                            icon: 'success',
+                            title: '已送出回答!',
+                            showComfirmButtom: true,
+                            showCancelButton: true,
+                            confirmButtonText: '查看統計',
+                            cancelButtonText: '回到問卷清單',
+                            confirmButtonColor: '#39b500',
+                            cancelButtonColor: '#b80000',
+                            reverseButtons: true,
+                        }).then((result) => {
+                            if (result.isConfirmed) {
+                                // 查看統計
+                                localStorage.clear();
+                                setTimeout(() => {
+                                    this.$router.push('/join/result/' + this.answerSurveyId);
+                                }, 300); // 延遲 0.5 秒後跳頁
+
+                            } else if (result.dismiss === this.$swal.DismissReason.cancel) {
+                                // 回到問卷清單(回上一頁)
+                                this.surveyId = null;
+                                localStorage.clear();
+                                setTimeout(() => {
+                                    this.$router.push('survey_info');
+                                }, 300); // 延遲 0.5 秒後跳頁
+                            }
+                        });
+
+                    } else {
+                        console.log('請求失敗:', res.data.message);
+                        this.$swal({
+                            icon: 'error',
+                            title: '錯誤',
+                            text: '資料有誤!請檢查是否有遺漏!',
+                        });
+                        return;
+                    }
+
+                }).catch((err) => {
+                    console.log("錯誤", err)
+                });
+        },
     },
+    watch: {
+        rememberMe: {
+            handler(newVal) {
+                // 勾選記住我時
+                if (newVal) {
+                    sessionStorage.setItem('answerName', this.answerName)
+                    sessionStorage.setItem('answerPhone', this.answerPhone)
+                    sessionStorage.setItem('answerEmail', this.answerEmail)
+                    sessionStorage.setItem('answerAge', this.answerAge)
+                }
+                // 取消勾選記住我時
+                else {
+                    sessionStorage.removeItem('answerName', this.answerName)
+                    sessionStorage.removeItem('answerPhone', this.answerPhone)
+                    sessionStorage.removeItem('answerEmail', this.answerEmail)
+                    sessionStorage.removeItem('answerAge', this.answerAge)
+                }
+            }
+        }
+    }
 }
 </script>
 <template>
@@ -263,10 +282,16 @@ export default {
                 <h2>年齡</h2>
                 <input type="number" name="answerAge" id="answerAge" placeholder="25" v-model="answerAge">
             </div>
+
+            <!-- 記住我 勾選區 -->
+            <div class="rememberMe_box">
+                <input type="checkbox" id="rememberMe" v-model="rememberMe">
+                <label for="rememberMe">記住我 (關閉瀏覽器將自動清除)</label>
+            </div>
         </div>
         <div class="answer_area">
             <h1>{{ title }}</h1>
-            <h2>{{ description }}</h2>
+            <h2 class="description_area">{{ description }}</h2>
             <div class="box" v-for="(questions, questionIndex) in questionList">
 
                 <h3>
@@ -289,7 +314,7 @@ export default {
                         </span>
 
                     </div>
-                    <span class="question__a">
+                    <span class="question__a" :class="{ 'error-input': isInvalid[questionIndex] }">
                         {{ questions.question }}
                     </span>
                     <!-- 是否必填 -->
@@ -301,9 +326,10 @@ export default {
 
                 <!-- 多選 -->
                 <div v-if="questions.questionType === '多選'">
+                    <!-- v-for產生選項 -->
                     <div v-for="(option, optionIndex) in questions.options.split(';')" :key="optionIndex">
                         <input type="checkbox" :id="`option${questions.questionId}_${optionIndex}`" :value="option"
-                            @input="handleOptionChange($event, questions.questionId, question.required, questionIndex)">
+                            @change="handleOptionChange($event, questions.questionId, questions.required, questionIndex)">
                         <label :for="`option${questions.questionId}_${optionIndex}`">
                             {{ option }}
                         </label>
@@ -312,7 +338,8 @@ export default {
 
                 <!-- 單選 -->
                 <div v-else-if="questions.questionType === '單選'">
-                    <select @change="handleOptionChange($event, questions.questionId, question.required, questionIndex)"
+                    <select :id="`option${questions.questionId}`"
+                        @change="handleOptionChange($event, questions.questionId, questions.required, questionIndex)"
                         value="">
                         <option v-for="(option, optionIndex) in questions.options.split(';')" :key="optionIndex"
                             :value="option">
@@ -324,14 +351,13 @@ export default {
 
                 <!-- 問答 -->
                 <div v-else>
-                    <textarea cols="30" rows="5" placeholder="輸入答案"
-                        @input="handleOptionChange($event, questions.questionId, question.required, questionIndex)"></textarea>
+                    <textarea :id="`option${questions.questionId}`" cols="30" rows="5" placeholder="輸入答案"
+                        @change="handleOptionChange($event, questions.questionId, questions.required, questionIndex)"></textarea>
                 </div>
             </div>
         </div>
 
         <div class="send_area">
-            <button type="button" id="clear" @click="clear">清 空</button>
             <button type="button" id="sendToDB" @click="checkEmpty">完 成 送 出</button>
         </div>
         <h2 class="des_save">注意! 送出後不能修改!!!</h2>
@@ -340,6 +366,10 @@ export default {
 <style lang="scss">
 .main {
     position: relative;
+
+    .error-input {
+        color: #eb0000;
+    }
 
     //懸浮視窗
     .fa-circle-question {
@@ -417,6 +447,19 @@ export default {
             }
         }
 
+        .rememberMe_box {
+            margin: 20px 40px;
+            display: flex;
+            align-items: center;
+
+            input[type=checkbox] {
+                height: 18px;
+                width: 18px;
+            }
+
+
+        }
+
     }
 
 
@@ -433,7 +476,7 @@ export default {
             font-size: 18px;
             text-align: center;
             background-color: #c9ffb0;
-            padding: 10px;
+            padding: 10px 15%;
         }
 
 

@@ -14,6 +14,8 @@ export default {
             findAllSurveyAPI: import.meta.env.VITE_FIND_ALL_SURVEY,
             searchSurveyAPI: import.meta.env.VITE_SEARCH_SURVEY,
             searchBySurveyStateAPI: import.meta.env.VITE_SEARCH_BY_SURVEY_STATE,
+            //增加loading時間
+            isLoading: true,
 
 
             search_title: null,
@@ -22,10 +24,15 @@ export default {
 
             //過濾器清單
             filteredSurveys: [],
+
+            //分頁用
+            selectedShowPages: 10, // 預設每頁顯示的筆數
+            currentPage: 1, // 目前的頁碼
         }
     },
     methods: {
         getAllSurvey() {
+            this.isLoading = true;
             axios({
                 method: 'get',
                 url: this.findAllSurveyAPI,
@@ -36,7 +43,11 @@ export default {
                         ...item,
                         startDate: moment(item.startDate, 'YYYY-MM-DD').toDate(),
                         endDate: moment(item.endDate, 'YYYY-MM-DD').toDate(),
-                    }));
+                    })).reverse();
+                    this.isLoading = false;
+                }).catch((err) => {
+                    console.log(err)
+                    this.isLoading = false;
                 });
         },
         //moment比較時間
@@ -65,15 +76,16 @@ export default {
                         ...item,
                         startDate: moment(item.startDate, 'YYYY-MM-DD').toDate(),
                         endDate: moment(item.endDate, 'YYYY-MM-DD').toDate(),
-                    }));
+                    })).reverse();
+                    this.filteredSurveys = this.surveyList;
+
+                    // 手動重設目前頁碼
+                    this.changePage(1);
+
+
                 } else {
                     console.log(res.data.message)
                 }
-                // this.surveyList = res.data.surveyList.map((item) => ({
-                //     ...item,
-                //     startDate: moment(item.startDate, 'YYYY-MM-DD').toDate(),
-                //     endDate: moment(item.endDate, 'YYYY-MM-DD').toDate(),
-                // }));
             }).catch((err) => {
                 console.log(err)
             })
@@ -96,14 +108,28 @@ export default {
                         ...item,
                         startDate: moment(item.startDate, 'YYYY-MM-DD').toDate(),
                         endDate: moment(item.endDate, 'YYYY-MM-DD').toDate(),
-                    }));
+                    })).reverse();;
+
+                    this.filteredSurveys = this.surveyList;
+
+                    // 手動重設目前頁碼
+                    this.changePage(1);
+
                 } else {
                     console.log(res.data.message)
                 }
             }).catch((err) => {
                 console.log(err)
             })
-        }
+        },
+        // [分頁] 切換頁碼
+        changePage(page) {
+            this.currentPage = page;
+        },
+        // [分頁] 更新每頁顯示筆數，並將頁碼重設為第 1 頁
+        updatePage() {
+            this.currentPage = 1;
+        },
     },
     watch: {
         search_start_date: {
@@ -137,7 +163,7 @@ export default {
 
                 } else if (newVal === "開放中") {
                     this.search_end_date = null;
-                    this.search_start_date = new Date(now.getTime() + 1 * 24 * 60 * 60 * 1000 - timezoneOffset).toISOString().slice(0, 10);
+                    this.search_start_date = new Date(now.getTime() + 0 * 24 * 60 * 60 * 1000 - timezoneOffset).toISOString().slice(0, 10);
                     this.search_end_date = new Date(now.getTime() - 1 * 24 * 60 * 60 * 1000 - timezoneOffset).toISOString().slice(0, 10);
                     this.filterBySurveyState();
 
@@ -156,12 +182,18 @@ export default {
         }
     },
     created() {
+
+        // 先抓到問卷列表
+        this.getAllSurvey();
+
+
         //設定時區、當下時間
         const now = new Date();
         const timezoneOffset = now.getTimezoneOffset() * 60000;
 
         this.today = new Date(now.getTime() - timezoneOffset);
         console.log("設定時區:" + this.today);
+
     },
     computed: {
         formattedStartDate() {
@@ -170,21 +202,38 @@ export default {
         formattedEndDate() {
             return (item) => moment(item.endDate).format('YYYY-MM-DD');
         },
+
+        // [分頁] 計算總頁數
+        totalPages() {
+            return Math.ceil(this.filteredSurveys.length / this.selectedShowPages);
+        },
+        // [分頁] 根據目前頁碼和每頁筆數來選取顯示的問卷資料
+        displayedSurveys() {
+            const startIdx = (this.currentPage - 1) * this.selectedShowPages;
+            const endIdx = startIdx + this.selectedShowPages;
+            return this.filteredSurveys.slice(startIdx, endIdx);
+        },
     },
-    mounted() {
-        this.getAllSurvey();
-    },
+    // mounted() {
+    //     this.searchFilter();
+    //     this.filterBySurveyState();
+    // },
 }
 </script>
-<template lang="">
-    <div>
+<template>
+    <div v-if="isLoading">
+        <div class="full">
+            <img src="" alt="">
+        </div>
+    </div>
+    <div v-else>
         <div class="show">
             <div class="filter">
                 <div class="box">
                     <h2>問卷標題</h2>
                     <input type="text" name="search_title" id="search_title" placeholder="" v-model="search_title">
                 </div>
-                
+
                 <div class="box">
                     <h2>開始時間</h2>
                     <input type="date" name="search_start_date" id="search_start_date" placeholder=""
@@ -199,9 +248,9 @@ export default {
                         <option value="已結束">已結束</option>
                     </select>
                 </div>
-            <hr>
+                <hr>
             </div>
-            
+
             <div class="color_memo">
                 <div>
                     <i class="fa-solid fa-circle fa-lg" style="color: #ffffff;"></i>
@@ -217,9 +266,19 @@ export default {
                 </div>
                 <div>
                     <i class="fa-solid fa-circle fa-lg" style="color: #343434;"></i>
-                    <span>已結束</span> 
+                    <span>已結束 | </span>
+                </div>
+                <div class="show_pages">
+                    每頁顯示
+                    <select name="" id="show_page" v-model="selectedShowPages">
+                        <option value="10"> 10 </option>
+                        <option value="20"> 20 </option>
+                    </select>
+                    筆問卷
                 </div>
             </div>
+
+            <!-- 表格 -->
             <table>
                 <thead>
                     <tr>
@@ -232,7 +291,7 @@ export default {
                     </tr>
                 </thead>
                 <tbody>
-                    <tr v-for="(item, index) in surveyList" :key="index">
+                    <tr v-for="(item, index) in displayedSurveys" :key="index">
                         <td class="num">{{ index + 1 }}</td>
 
                         <td class="title" v-if="isFutureDate(item.startDate) || isPastDate(item.endDate)">
@@ -240,38 +299,78 @@ export default {
                         </td>
                         <td class="title" v-else>
                             <RouterLink :to="`answers/${item.surveyId}`">
-                            {{ item.title }} 
-                            <i class="fa-solid fa-angles-right fa-sm" style="color: #39b500;"><span class="go_answer"> 去填寫 </span></i> 
+                                {{ item.title }}
+                                <i class="fa-solid fa-angles-right fa-sm" style="color: #39b500;"><span class="go_answer">
+                                        去填寫 </span></i>
                             </RouterLink>
                         </td>
 
                         <td class="state yet" v-if="isFutureDate(item.startDate)">
                             <i class="fa-solid fa-circle fa-lg" style="color: #ff5656;"></i>
-                            未開始</td>
+                            未開始
+                        </td>
                         <td class="state ended" v-else-if="isPastDate(item.endDate)">
                             <i class="fa-solid fa-circle fa-lg" style="color: #343434;"></i>
-                            已結束</td>
+                            已結束
+                        </td>
                         <td class="state voting" v-else>
                             <i class="fa-solid fa-circle fa-lg" style="color: #39b500;"></i>
-                            開放中</td>
+                            開放中
+                        </td>
 
                         <td class="start">{{ formattedStartDate(item) }}</td>
                         <td class="end">{{ formattedEndDate(item) }}</td>
                         <td class="do">
-                        <RouterLink :to="`/create/${item.surveyId}`" v-if="isFutureDate(item.startDate)">
-                        <button type="button" id="edit_btn">修改問卷 
-                            <i class="fa-solid fa-pen-to-square fa-lg" style="color: #ff5656;"></i>
-                        </button>
-                        </RouterLink>
-                        <RouterLink :to="`result/${item.surveyId}`" v-else>
-                        <button type="button" id="chart_btn">統計圖表
-                            <i class="fa-solid fa-chart-pie fa-lg" style="color: #39b500;"></i>
-                        </button>
-                        </RouterLink>
+                            <RouterLink :to="`/create/${item.surveyId}`" v-if="isFutureDate(item.startDate)">
+                                <button type="button" id="edit_btn">修改問卷
+                                    <i class="fa-solid fa-pen-to-square fa-lg" style="color: #ff5656;"></i>
+                                </button>
+                            </RouterLink>
+                            <RouterLink :to="`result/${item.surveyId}`" v-else>
+                                <button type="button" id="chart_btn">統計圖表
+                                    <i class="fa-solid fa-chart-pie fa-lg" style="color: #39b500;"></i>
+                                </button>
+                            </RouterLink>
                         </td>
                     </tr>
                 </tbody>
             </table>
+
+            <!-- 分頁 -->
+            <ul>
+                <a @click="changePage(1)">
+                    <li>
+                        第1頁
+                    </li>
+                </a>
+
+                <!-- 當目前頁數大於10，就會顯示"前十頁"的按鈕 -->
+                <li v-if="currentPage > 10" @click="changePage(currentPage - 10)">
+                    前10頁
+                </li>
+
+                <li v-for="page in Math.min(totalPages, 10)" :key="page" :class="{ 'green-bg': currentPage === page }">
+                    <a @click="changePage(page)">
+                        <div class="paggge">
+                            {{ page }}
+                        </div>
+                    </a>
+                </li>
+
+                <!-- 當總頁數大於10，就會顯示"後十頁"的按鈕 -->
+                <li v-if="totalPages > 10" @click="changePage(currentPage + 10)">
+                    後10頁
+                </li>
+
+
+                <a @click="changePage(totalPages)">
+                    <li>
+                        最後頁
+                    </li>
+                </a>
+            </ul>
+
+
         </div>
     </div>
 </template>
@@ -336,10 +435,16 @@ export default {
         position: relative;
         top: 10px;
         left: 5%;
-        margin: 20px 0 30px 0;
+        margin: 30px 0 30px 0;
 
         span {
             margin: 10px;
+        }
+
+        #show_page {
+            width: 70px;
+            font-size: 16px;
+            text-align: center;
         }
     }
 
@@ -472,5 +577,26 @@ export default {
         }
     }
 
+    ul {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin-bottom: 50px;
+        font-size: 20px;
+
+        li {
+            padding: 10px;
+            margin: 10px;
+            border: 2px dashed #558541;
+            background-color: #e7ffdd;
+            cursor: pointer;
+
+            &.green-bg {
+                background-color: #b3ffb3;
+                color: white;
+            }
+
+        }
+    }
 }
 </style>

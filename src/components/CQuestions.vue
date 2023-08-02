@@ -104,6 +104,8 @@ export default {
                     const editData = this.question_list[this.editIndex];
                     editData.question = this.question;
                     editData.options = this.options;
+                    editData.questionType = this.questionType;
+                    editData.required = this.required;
 
                     //把資料傳回父層
                     this.$emit('saveQuestions', this.question_list)

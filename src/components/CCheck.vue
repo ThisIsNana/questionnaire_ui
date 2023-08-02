@@ -117,7 +117,7 @@ export default {
                                         this.$router.push('/join/surveylist');
                                     }, 500); // 延遲 0.5 秒後跳頁
 
-                                } else if (result.dismiss === Swal.DismissReason.cancel) {
+                                } else if (result.dismiss === this.$swal.DismissReason.cancel) {
                                     // 新增下一個商品(刷新頁面)
                                     this.surveyId = null;
                                     this.$emit('saveSurvey', null)
